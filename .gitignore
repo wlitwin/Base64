@@ -1,0 +1,9 @@
+bin/
+obj/
+boot/bin/
+boot/obj/
+boot/x86_all/bin/
+boot/x86_all/obj/
+kernel/bin/
+kernel/x86_64/bin/
+kernel/x86_64/obj/
