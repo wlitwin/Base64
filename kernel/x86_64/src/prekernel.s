@@ -5,8 +5,7 @@ LME_BIT = 0x0100 # EFER Long Mode Enable
 VIDEO_RAM = 0xB8000
 
 KERNEL_LOAD_LOCATION = 0x200000
-KERNEL_BASE_LOCATION = 0xFFFF800000000000
-KERNEL_STACK_LOCATION = KERNEL_BASE_LOCATION + (KERNEL_LOAD_LOCATION - 0x4)
+KERNEL_STACK_LOCATION = KERNEL_LOAD_LOCATION - 0x4
 
 /********************************************************
  * GDT Information
@@ -78,7 +77,7 @@ gdt_64:
 	.quad start_gdt_64
 gdt_64_upper:
 	.word gdt_64_len
-	.quad start_gdt_64 + KERNEL_BASE_LOCATION
+	.quad start_gdt_64
 
 /********************************************************
  * End GDT Information
@@ -93,7 +92,7 @@ idt_64:
 	.quad start_idt_64
 idt_64_upper:
 	.word idt_64_len
-	.quad start_idt_64 + KERNEL_BASE_LOCATION
+	.quad start_idt_64
 	
 .align 4096
 .globl start_idt_64
@@ -133,9 +132,7 @@ KERNEL_PML4_VALUE = 0b11
 .globl kernel_PML4
 kernel_PML4:
 	.quad (kernel_PDPTE + KERNEL_PML4_VALUE)
-	.fill 255, 8, 0
-	.quad (kernel_PDPTE + KERNEL_PML4_VALUE)
-	.fill 255, 8, 0
+	.fill 511, 8, 0
 
 .align 4096
 .globl kernel_PDPTE
