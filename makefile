@@ -20,4 +20,4 @@ create_bin: boot kernel
 	@cat ./boot/bin/bootloader.b ./kernel/bin/kernel.b > ./bin/kernel.bin
 
 x64_qemu:
-	qemu-system-x86_64 -s -m 512 -cpu core2duo -drive file=./bin/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -net user -net nic,model=i82559er -soundhw hda
+	qemu-system-x86_64 -s -m 512 -cpu core2duo -drive file=./bin/kernel.bin,format=raw,cyls=200,heads=16,secs=63 -net user -net nic,model=i82559er -soundhw hda -monitor stdio
