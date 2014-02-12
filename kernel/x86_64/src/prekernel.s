@@ -4,9 +4,6 @@ LME_BIT = 0x0100 # EFER Long Mode Enable
 
 VIDEO_RAM = 0xB8000
 
-KERNEL_LOAD_LOCATION = 0x200000
-KERNEL_STACK_LOCATION = KERNEL_LOAD_LOCATION - 0x4
-
 /********************************************************
  * GDT Information
  *******************************************************/
@@ -353,8 +350,8 @@ peat_done:
 .code64
 longmode_code:
 	/* Setup kernel stack */
-	movq $KERNEL_STACK_LOCATION, %rsp
-	movq $KERNEL_STACK_LOCATION, %rbp
+	movq $__KERNEL_STACK_START, %rsp
+	movq $__KERNEL_STACK_START, %rbp
 
 	lgdt (gdt_64_upper)
 	lidt (idt_64_upper)
