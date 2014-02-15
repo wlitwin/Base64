@@ -1,3 +1,3 @@
 PLATFORM=x86_64
 CC=gcc
-C_FLAGS=-Wall -Werror -Wextra -pedantic -std=c99
+override CFLAGS := -Wall -Werror -Wextra -pedantic -std=c99 $(CFLAGS)

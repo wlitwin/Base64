@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-m64 \
+override CFLAGS := -m64 \
 	   -g \
 	   -Wwrite-strings \
 	   -mcmodel=large \
@@ -19,6 +19,7 @@ CFLAGS=-m64 \
 	   -march=native \
 	   -std=c99 \
 	   -Isrc/ \
+	   $(CFLAGS)
 
 AS=as
 AS_FLAGS=--64 -am

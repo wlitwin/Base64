@@ -1,5 +1,5 @@
 CC=gcc
-C_FLAGS=-Wall -Werror -Wextra -pedantic -std=gnu99
+CFLAGS=-Wall -Werror -Wextra -pedantic -std=gnu99
 
 AS=as
 AS_FLAGS=--32 -n32
@@ -30,4 +30,4 @@ bootloader:
 
 ./bin/FancyCat:
 	@echo Creating FancyCat
-	@$(CC) $(C_FLAGS) FancyCat.c -o ./bin/FancyCat
+	@$(CC) $(CFLAGS) FancyCat.c -o ./bin/FancyCat
