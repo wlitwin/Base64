@@ -1,5 +1,5 @@
-#ifndef __X86_64_MMAP_H__
-#define __X86_64_MMAP_H__
+#ifndef __X86_64_MEMORY_MMAP_H__
+#define __X86_64_MEMORY_MMAP_H__
 
 #include "inttypes.h"
 
