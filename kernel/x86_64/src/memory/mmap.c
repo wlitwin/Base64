@@ -10,12 +10,18 @@ extern uint64_t __KERNEL_END;   // Higher address
 extern uint64_t __KERNEL_STACK_START; // Higher address
 extern uint64_t __KERNEL_STACK_END;   // Lower address
 
+extern uint64_t __ISR_STACK_START; // Higher address
+extern uint64_t __ISR_STACK_END;   // Lower address
+
 // Actual addresses of the symbols
 const uint64_t KERNEL_LO_ADDR = (uint64_t)&__KERNEL_START;
 const uint64_t KERNEL_HI_ADDR = (uint64_t)&__KERNEL_END;
 
 const uint64_t KERNEL_STACK_HI_ADDR = (uint64_t)&__KERNEL_STACK_START;
 const uint64_t KERNEL_STACK_LO_ADDR = (uint64_t)&__KERNEL_STACK_END;
+
+const uint64_t ISR_STACK_HI_ADDR = (uint64_t)&__ISR_STACK_START;
+const uint64_t ISR_STACK_LO_ADDR = (uint64_t)&__ISR_STACK_END;
 
 // The maximum possible number of mmap entries
 #define MMAP_MAX_ENTRIES ((0x7C00 - 0x2D04) / 24)
@@ -60,7 +66,10 @@ void mmap_init()
 	// We're going to assume that the kernel stack is directly below the
 	// kernel's code and data. This allows us to treat it as one large
 	// region below when fixing the memory map regions.
-	ASSERT(KERNEL_LO_ADDR == KERNEL_STACK_HI_ADDR);
+	ASSERT(KERNEL_STACK_LO_ADDR <= KERNEL_LO_ADDR);
+	ASSERT(KERNEL_STACK_HI_ADDR <= KERNEL_LO_ADDR);
+	ASSERT(ISR_STACK_LO_ADDR >= KERNEL_STACK_HI_ADDR);
+	ASSERT(ISR_STACK_HI_ADDR <= KERNEL_LO_ADDR);
 
 	const MMapEntry* mmap = (MMapEntry*)MMAP_ADDRESS;
 	const uint32_t mmap_count = *(uint32_t*)MMAP_COUNT_ADDRESS;
