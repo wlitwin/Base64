@@ -5,6 +5,7 @@ OUTPUT_FORMAT (elf64-x86-64)
 SECTIONS {
 
 	. = 0x100000;
+	__KERNEL_ALL_LO = .;
 	__KERNEL_STACK_END = .;
 	/* Stack operations decrement first */
 	. = 0x180000;
@@ -72,6 +73,7 @@ SECTIONS {
 
 	end = .; _end = .; __end = .;
 	__KERNEL_END = .;
+	__KERNEL_ALL_HI = .;
 
 	/DISCARD/ :
 	{

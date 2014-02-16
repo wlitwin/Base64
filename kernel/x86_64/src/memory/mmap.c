@@ -4,24 +4,14 @@
 #include "kprintf.h"
 
 // Symbol placed by the linker
-extern uint64_t __KERNEL_START; // Lower address
-extern uint64_t __KERNEL_END;   // Higher address
-
-extern uint64_t __KERNEL_STACK_START; // Higher address
-extern uint64_t __KERNEL_STACK_END;   // Lower address
-
-extern uint64_t __ISR_STACK_START; // Higher address
-extern uint64_t __ISR_STACK_END;   // Lower address
+// We assume that these two locations will encompass all code
+// data and stacks needed by the kernel for initialization.
+extern uint64_t __KERNEL_ALL_LO;
+extern uint64_t __KERNEL_ALL_HI;
 
 // Actual addresses of the symbols
-const uint64_t KERNEL_LO_ADDR = (uint64_t)&__KERNEL_START;
-const uint64_t KERNEL_HI_ADDR = (uint64_t)&__KERNEL_END;
-
-const uint64_t KERNEL_STACK_HI_ADDR = (uint64_t)&__KERNEL_STACK_START;
-const uint64_t KERNEL_STACK_LO_ADDR = (uint64_t)&__KERNEL_STACK_END;
-
-const uint64_t ISR_STACK_HI_ADDR = (uint64_t)&__ISR_STACK_START;
-const uint64_t ISR_STACK_LO_ADDR = (uint64_t)&__ISR_STACK_END;
+const uint64_t KERNEL_ALL_LO_ADDR = (uint64_t)&__KERNEL_ALL_LO;
+const uint64_t KERNEL_ALL_HI_ADDR = (uint64_t)&__KERNEL_ALL_HI;
 
 // The maximum possible number of mmap entries
 #define MMAP_MAX_ENTRIES ((0x7C00 - 0x2D04) / 24)
@@ -63,19 +53,9 @@ uint32_t mmap_length = 1;
 void mmap_init()
 {
 	kprintf("Entering MMAP\n");
-	// We're going to assume that the kernel stack is directly below the
-	// kernel's code and data. This allows us to treat it as one large
-	// region below when fixing the memory map regions.
-	ASSERT(KERNEL_STACK_LO_ADDR <= KERNEL_LO_ADDR);
-	ASSERT(KERNEL_STACK_HI_ADDR <= KERNEL_LO_ADDR);
-	ASSERT(ISR_STACK_LO_ADDR >= KERNEL_STACK_HI_ADDR);
-	ASSERT(ISR_STACK_HI_ADDR <= KERNEL_LO_ADDR);
 
 	const MMapEntry* mmap = (MMapEntry*)MMAP_ADDRESS;
 	const uint32_t mmap_count = *(uint32_t*)MMAP_COUNT_ADDRESS;
-
-	kprintf("KS: 0x%x - KE: 0x%x\nKSS: 0x%x - KSE: 0x%x\n", 
-			KERNEL_HI_ADDR, KERNEL_LO_ADDR, KERNEL_STACK_HI_ADDR, KERNEL_STACK_LO_ADDR);
 
 	for (uint32_t i = 0; i < mmap_count; ++i)
 	{
@@ -84,8 +64,8 @@ void mmap_init()
 	}
 
 	// This is checked by the assert above
-	const uint64_t reserved_lo = KERNEL_STACK_LO_ADDR;
-	const uint64_t reserved_hi = KERNEL_HI_ADDR;
+	const uint64_t reserved_lo = KERNEL_ALL_LO_ADDR;
+	const uint64_t reserved_hi = KERNEL_ALL_HI_ADDR;
 
 	uint32_t largest_region = 0xFFFFFFFF;
 
