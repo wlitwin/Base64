@@ -6,10 +6,13 @@ SECTIONS {
 
 	. = 0x100000;
 	__KERNEL_STACK_END = .;
+	/* Stack operations decrement first */
+	. = 0x180000;
+	__KERNEL_STACK_START = .;
+	__ISR_STACK_END = .;
 
 	. = 0x200000;
-	/* Stack operations decrement first */
-	__KERNEL_STACK_START = .;
+	__ISR_STACK_START = .;
 	__KERNEL_START = .;
 
 	text_prekernel ALIGN(0x1000) : AT(0x200000) {
