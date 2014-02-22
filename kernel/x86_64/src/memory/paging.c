@@ -36,10 +36,26 @@ void paging_init()
 
 	// We'll allocate as many 2MiB pages as possible
 	max_addr = ALIGN_2MIB(max_addr);
-	const uint64_t num_pages = max_addr / _2_MIB;
 
-	// Perform the identity mapping
-	kmap_page_range(0x0, 0x0, PG_FLAG_RW, PAGE_2MIB, num_pages);
+	// The kernel already identity maps the first 1 GIB of RAM
+	if (max_addr < _1_GIB)
+	{
+		// Unmap invalid regions
+		uint64_t phys_addr = ALIGN_2MIB(max_addr);
+		uint64_t paddr = 0;
+		while (phys_addr < _1_GIB)
+		{
+			kunmap_page(phys_addr, &paddr);
+			phys_addr += _2_MIB;
+		}
+	}
+	else
+	{
+		max_addr -= _1_GIB;
+		const uint64_t num_pages = max_addr / _2_MIB;
+		// Perform the identity mapping
+		kmap_page_range(_1_GIB, _1_GIB, PG_FLAG_RW, PAGE_2MIB, num_pages);
+	}
 
 	// Now all of physical RAM is identity mapped
 }

@@ -103,7 +103,7 @@ void map_page_auto(PML4_Table* pml4, uint64_t virt_addr, uint64_t flags,
 uint8_t unmap_page(PML4_Table* pml4, uint64_t virt_addr, uint64_t* phys_addr);
 
 /* Same as map_page_auto, but substitutes kernel_PML4 for the pml4 parameter */
-#define kunmap_page(VADDR) unmap_page(&kernel_PML4, (VADDR))
+#define kunmap_page(VADDR, PADDR) unmap_page(&kernel_PML4, (VADDR), (PADDR))
 
 /* Similar to unmap_page(), but will use the physical allocator to
  * free the physical location. Should only be used when the page was
