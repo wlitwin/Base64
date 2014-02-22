@@ -46,7 +46,7 @@ uint8_t map_page(PML4_Table* pml4, uint64_t virt_addr, uint64_t phys_addr,
 
 /* Same as map_page, but substitutes kernel_PML4 for the pml4 parameter */
 #define kmap_page(VADDR, PADDR, FLAGS, PSIZE) \
-	map_page(kernel_PML4, (VADDR), (PADDR), (FLAGS), (PSIZE))
+	map_page(&kernel_PML4, (VADDR), (PADDR), (FLAGS), (PSIZE))
 
 /* Map a contiguous range of virtual addresses to a contiguous range of physical
  * addresses. Physical addresses are assumed valid.
@@ -68,7 +68,7 @@ uint8_t map_page_range(PML4_Table* pml4, uint64_t virt_addr, uint64_t phys_addr,
 
 /* Same as map_page_range, but substitutes kernel_PML4 for the pml4 parameter */
 #define kmap_page_range(VADDR, PADDR, FLAGS, PSIZE, NPAGES) \
-	kmap_page_range(kernel_PML4, (VADDR), (PADDR), (FLAGS), (PSIZE), (NPAGES))
+	map_page_range(&kernel_PML4, (VADDR), (PADDR), (FLAGS), (PSIZE), (NPAGES))
 
 /* Map a virtual address to any physical address. Uses the physical memory
  * allocator to get a valid physical address. If there are no more virtual
@@ -85,7 +85,7 @@ void map_page_auto(PML4_Table* pml4, uint64_t virt_addr, uint64_t flags,
 
 /* Same as map_page_auto, but substitutes kernel_PML4 for the pml4 parameter */
 #define kmap_page_auto(VADDR, FLAGS, PSIZE) \
-	map_page_auto(kernel_PML4, (VADDR), (FLAGS), (PSIZE))
+	map_page_auto(&kernel_PML4, (VADDR), (FLAGS), (PSIZE))
 
 /* Unmaps a virtual address. Does not free the physical backing store,
  * only clears the entry in the table structure.
@@ -93,15 +93,17 @@ void map_page_auto(PML4_Table* pml4, uint64_t virt_addr, uint64_t flags,
  * Params:
  *   pml4      - Top most page table structure, the PML4 table
  *   virt_addr - The virtual address
+ *   phys_addr - Out parameter, contains the physical address
  *
  * Returns:
- *   1 if the virtual address was mapped and then successfully unmapped.
- *   0 if the virtual address was not mapped.
+ *   1 if the virtual address was mapped and then successfully unmapped. 
+ *   phys_addr will contain the physical address the virtual address was
+ *   mapped to. 0 if the virtual address was not mapped.
  */
-uint8_t unmap_page(PML4_Table* pml4, uint64_t virt_addr);
+uint8_t unmap_page(PML4_Table* pml4, uint64_t virt_addr, uint64_t* phys_addr);
 
 /* Same as map_page_auto, but substitutes kernel_PML4 for the pml4 parameter */
-#define kunmap_page(VADDR) unmap_page(kernel_PML4, (VADDR))
+#define kunmap_page(VADDR) unmap_page(&kernel_PML4, (VADDR))
 
 /* Similar to unmap_page(), but will use the physical allocator to
  * free the physical location. Should only be used when the page was
@@ -115,7 +117,7 @@ uint8_t unmap_page(PML4_Table* pml4, uint64_t virt_addr);
 void unmap_page_auto(PML4_Table* pml4, uint64_t virt_addr);
  
 /* Same as unmap_page_auto, but substitutes kernel_PML4 for the pml4 parameter */
-#define kunmap_page_auto(VADDR) unmap_page_auto(kernel_PML4, (VADDR))
+#define kunmap_page_auto(VADDR) unmap_page_auto(&kernel_PML4, (VADDR))
 
 /* Determine what physical address a virtual address maps to.  
  *
@@ -133,6 +135,6 @@ void unmap_page_auto(PML4_Table* pml4, uint64_t virt_addr);
 uint8_t virt_to_phys(PML4_Table* pml4, uint64_t virt_addr, uint64_t* out_phys);
 
 /* Same as map_page_auto, but substitutes kernel_PML4 for the pml4 parameter */
-#define kvirt_to_phys(VADDR, POUT) virt_to_phys(kernel_PML4, (VADDR), (POUT))
+#define kvirt_to_phys(VADDR, POUT) virt_to_phys(&kernel_PML4, (VADDR), (POUT))
 
 #endif
