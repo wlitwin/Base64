@@ -64,7 +64,7 @@ void setup_physical_allocator()
 		const uint64_t base_orig = mmap_array[i].base;	
 		const uint64_t length_orig = mmap_array[i].length;
 
-		if (length_orig < _2_MiB)
+		if (length_orig < _2_MIB)
 		{
 			wasted_ram += length_orig;
 			continue;
@@ -73,7 +73,7 @@ void setup_physical_allocator()
 		uint64_t base = ALIGN_2MIB(base_orig);
 		uint64_t length = length_orig - (base - base_orig);
 
-		if (length < _2_MiB)
+		if (length < _2_MIB)
 		{
 			wasted_ram += length_orig;
 			continue;
@@ -86,11 +86,11 @@ void setup_physical_allocator()
 			StackNode* node = (StackNode*) base;
 			stack_push(&stack_2MIB, node);
 			++count;
-			allocatable_ram += _2_MiB;
+			allocatable_ram += _2_MIB;
 
-			base += _2_MiB;
-			length -= _2_MiB;
-		} while (length >= _2_MiB);
+			base += _2_MIB;
+			length -= _2_MIB;
+		} while (length >= _2_MIB);
 
 		++usable;
 		wasted_ram += length;
@@ -189,7 +189,7 @@ static void pool_init(Pool* pool)
 {
 	stack_init(&pool->free_stack);	
 	pool->implicit_next = (void*) ((uint64_t)pool + _4_KIB);
-	pool->max_address = (void*) ((uint64_t)pool + _2_MiB);
+	pool->max_address = (void*) ((uint64_t)pool + _2_MIB);
 	pool->next = NULL;
 	pool->prev = NULL;
 	pool->on_list = 0;

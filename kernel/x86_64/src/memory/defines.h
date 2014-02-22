@@ -5,8 +5,8 @@
 #define _2_KIB (2*_1_KIB)
 #define _4_KIB (4*_1_KIB)
 #define _1_MIB (1024ULL*_1_KIB)
-#define _2_MiB (2ULL*_1_MIB)
-#define _512_MiB (512ULL*_1_MIB)
+#define _2_MIB (2ULL*_1_MIB)
+#define _512_MIB (512ULL*_1_MIB)
 #define _1_GIB (1024ULL*_1_MIB)
 #define _512_GIB (512ULL*_1_GIB)
 
@@ -16,8 +16,8 @@
 #define PG_FLAG_PCD 0x10
 #define PG_FLAG_XD 0x8000000000000000
 
-#define PAGE_SMALL 0x1
-#define PAGE_LARGE 0x2
+#define PAGE_4KIB 0x1
+#define PAGE_2MIB 0x2
 
 #define PAGE_SMALL_SIZE 0x1000
 #define PAGE_LARGE_SIZE 0x200000
@@ -27,7 +27,7 @@
 #define PDPT_ENTRIES 512ULL
 #define PML4_ENTRIES 512ULL
 
-#define ALIGN_2MIB(X) (((X) & 0xFFFFFFFFFFE00000) + ((((X) & 0x1FFFFF) > 0) * _2_MiB))
+#define ALIGN_2MIB(X) (((X) & 0xFFFFFFFFFFE00000) + ((((X) & 0x1FFFFF) > 0) * _2_MIB))
 #define ALIGN_4KIB(X) (((X) & 0xFFFFFFFFFFFFF000) + ((((X) & 0xFFF) > 0) * _4_KIB))
 
 #define MASK_2MIB(X) (((uint64_t)X) & 0xFFFFFFFFFFE00000)
