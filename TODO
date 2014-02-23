@@ -1,0 +1,4 @@
+- Add a way to reserve addresses in the mmap module
+  This is needed because there are memory mapped devices
+  like the LAPIC that shouldn't be accidentally used for
+  arbitrary storage.
