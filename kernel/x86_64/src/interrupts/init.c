@@ -1,6 +1,7 @@
 #include "init.h"
 
 #include "tss.h"
+#include "apic.h"
 #include "panic.h"
 #include "safety.h"
 #include "kprintf.h"
@@ -96,4 +97,8 @@ void interrupts_init()
 		set_idt_entry(i, isr_stub_table[i]);
 		interrupts_install_isr(i, &default_handler);
 	}
+
+	// Initialize the APIC
+	// TODO fallback to 8259 if there is no APIC?
+	apic_init();
 }

@@ -1,4 +1,5 @@
 #include "memory/init.h"
+#include "interrupts/init.h"
 #include "textmode.h"
 #include "kprintf.h"
 
@@ -8,6 +9,7 @@ void kmain(void)
 	kprintf("Entered kmain\n");
 
 	memory_init();
+	interrupts_init();
 
 	while(1) { __asm__("hlt"); }
 }
