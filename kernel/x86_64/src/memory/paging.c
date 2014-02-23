@@ -313,6 +313,7 @@ uint8_t virt_to_phys(PML4_Table* pml4, uint64_t virt_addr, uint64_t* out_phys)
 					if ((pt_entry & PT_PRESENT) > 0)
 					{
 						*out_phys = ENTRY_TO_ADDR(pt_entry) + (virt_addr & 0xFFF);
+						return 1;
 					}
 				}
 			}
