@@ -93,10 +93,10 @@ void apic_spurious_handler(uint64_t vector, uint64_t code)
 inline __attribute__((always_inline))
 void pic_acknowledge(const uint64_t vector)
 {
-	if (vector >= 0x30 && vector < 0x40)
+	if (vector >= PIC_REMAP_BASE && vector < PIC_REMAP_BASE+0x10)
 	{
 		_outb(PIC_MASTER_CMD_PORT, PIC_EOI);
-		if (vector > 0x38)
+		if (vector > PIC_REMAP_BASE+0x8)
 		{
 			_outb(PIC_SLAVE_CMD_PORT, PIC_EOI);
 		}
