@@ -4,6 +4,7 @@
 #include "apic.h"
 #include "panic.h"
 #include "safety.h"
+#include "ioapic.h"
 #include "kprintf.h"
 #include "defines.h"
 #include "inttypes.h"
@@ -50,4 +51,6 @@ void interrupts_init()
 	// Initialize the APIC
 	// TODO fallback to 8259 if there is no APIC?
 	apic_init();
+
+	ioapic_init();
 }
