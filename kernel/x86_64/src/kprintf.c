@@ -93,6 +93,25 @@ static void _kprintf(const char* fmt, va_list ap)
 					padstr(&buffer[idx], BUFFER_LEN-idx, width, leftadjust, padchar);
 				}
 				break;
+			case 'l':
+			case 'L':
+				{
+					// Read length
+					uint64_t length = 0;
+					char ch = *fmt;
+					while (ch != '\0' && ch > '0' && ch < '9')
+					{
+						length *= 10;	
+						length += ch - '0';
+						ch = *(++fmt);
+					}
+
+					if (ch != 's') { panic("Invalid format specifier"); }
+
+					const char* str = va_arg(ap, const char*);
+					padstr(str, length, width, leftadjust, padchar);
+				}
+				break;
 			case 's':
 			case 'S':
 				{
@@ -166,7 +185,7 @@ void padstr(const char* str, int64_t len, int64_t width, uint8_t leftadjust, cha
 		pad(extra, padchar);
 	}
 
-	for (int64_t i = 0; i < len; ++i)
+	for (int64_t i = 0; i < len && str[i] != '\0'; ++i)
 	{
 		write_char(str[i]);
 	}
