@@ -4,6 +4,7 @@
 /* This file contains a few macros for debugging and general safety-ness
  */
 
+#include "macro.h"
 #include "panic.h"
 
 // Credit to:
@@ -15,12 +16,6 @@
 // Parameters:
 //    X - A boolean statement
 #define COMPILE_ASSERT(x) extern int __dummy[ (int) (x)!=0 ]
-
-// http://stackoverflow.com/questions/5641427/how-to-make-preprocessor-generate-a-string-for-line-keyword
-// Converts a number literal to a string at compile time
-#define S(X) #X
-#define SX(X) S(X)
-#define S__LINE__ SX(__LINE__)
 
 /* Put this declaration inside a function where the variable is unused to prevent
  * the compiler from outputting a warning message.
@@ -36,6 +31,6 @@
  * Parameters:
  *    X - A boolean statement
  */
-#define ASSERT(X) if (!(X)) panic("ASSERT FAILED: " __FILE__ ":" S__LINE__)
+#define ASSERT(X) if (!(X)) panic("ASSERT FAILED")
 
 #endif
