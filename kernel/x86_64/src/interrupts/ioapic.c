@@ -1,10 +1,21 @@
 #include "ioapic.h"
 
+#include "apic.h"
+#include "memory/defines.h"
+#include "memory/paging.h"
 #include "mptables.h"
 #include "inttypes.h"
 #include "kprintf.h"
 #include "safety.h"
 #include "panic.h"
+
+void ioapic_write32(uint32_t ioapic_idx, uint8_t reg_idx, uint32_t val);
+
+void ioapic_write64(uint32_t ioapic_idx, uint8_t reg_idx, uint64_t val);
+
+uint32_t ioapic_read32(uint32_t ioapic_idx, uint8_t reg_idx);
+
+uint64_t ioapic_read64(uint32_t ioapic_idx, uint8_t reg_idx);
 
 // The first I/O APIC is located here, subsequent ones are located
 // at 4KiB increments after this address. So the second I/O APIC is
@@ -15,11 +26,86 @@
 // http://download.intel.com/design/pentium/datashts/24201606.pdf
 #define IOAPIC1_BASE 0xFEC00000
 
-const MFPStruct* mfps;
+static uint64_t ioapic_base_virt_address = 0;
+
+#define MASK_INT 0x10000
+#define LOWEST_PRIO 0x100
+#define ACTIVE_LOW 0x2000
 
 void ioapic_init()
 {
+	// Check how many I/O APICs are present in the system
+	const uint32_t num_ioapics = get_ioapic_entry_count();
+	if (num_ioapics == 0)
+	{
+		panic("No I/O APICs found!");
+	}
+
+	kprintf("Found %d I/O APICs\n", num_ioapics);
+
 	// Map the I/O APICs to a virtual address below the LAPIC
+	// All of the I/O APICs should be sequential in memory separated
+	// in 4KiB increments.
+	const IOAPICEntry* ie = get_ioapic_entries();
+
+	uint32_t prev_address = ie[0].address;
+	for (uint32_t i = 1; i < num_ioapics; ++i)
+	{
+		ASSERT(ie[i].address > prev_address);
+		ASSERT(ie[i].address - prev_address == 0x1000);
+
+		prev_address = ie[i].address;
+	}
+
+	// Make a virtual->physical mapping for the I/O APICs
+	uint64_t ioapic_virt_address = APIC_LOCATION - 0x1000*num_ioapics;	
+	ioapic_base_virt_address = ioapic_virt_address;
+	for (uint32_t i = 0; i < num_ioapics; ++i)
+	{
+		if (!kmap_page(ioapic_virt_address, ie[i].address,
+					PG_FLAG_RW | PG_FLAG_PWT | PG_FLAG_PCD, PAGE_4KIB))
+		{
+			kprintf("I/O APIC #%d\n", i);
+			panic("Failed to map I/O APIC");
+		}
+
+		// This assumption was verified earlier
+		ioapic_virt_address += 0x1000;
+	}
+
+	kprintf("Done mapping I/O APICs\n");
+
+	// Now the I/O APIC interrupts have to be remapped and the 8259A PIC disabled
+	// Typical interrupt IRQ priority order (highest -> lowest) is:
+	// 0,1,2,8,9,10,11,12,13,14,15,3,4,5,6,7
+	// We'll follow that until something else comes up
+	ioapic_write64(0, 0x10, 0xFC); // 0
+	ioapic_write64(0, 0x12, 0xF4); // 1
+	ioapic_write64(0, 0x14, 0xEC); // 2
+	ioapic_write64(0, 0x16, 0xA4); // 3
+	ioapic_write64(0, 0x18, 0x9C); // 4
+	ioapic_write64(0, 0x1A, 0x94); // 5
+	ioapic_write64(0, 0x1C, 0x8C); // 6
+	ioapic_write64(0, 0x1E, 0x84); // 7
+	ioapic_write64(0, 0x20, 0xE4); // 8
+	ioapic_write64(0, 0x22, 0xDC); // 9
+	ioapic_write64(0, 0x24, 0xD4); // 10
+	ioapic_write64(0, 0x26, 0xCC); // 11
+	ioapic_write64(0, 0x28, 0xC4); // 12
+	ioapic_write64(0, 0x2A, 0xBC); // 13
+	ioapic_write64(0, 0x2C, 0xB4); // 14
+	ioapic_write64(0, 0x2E, 0xAC); // 15
+	ioapic_write64(0, 0x30, MASK_INT); // 16 - PCI
+	ioapic_write64(0, 0x32, MASK_INT); // 17 - PCI
+	ioapic_write64(0, 0x34, MASK_INT); // 18 - PCI
+	ioapic_write64(0, 0x36, MASK_INT); // 19 - PCI
+	ioapic_write64(0, 0x38, MASK_INT); // 20 - Motherboard
+	ioapic_write64(0, 0x3A, MASK_INT); // 21 - Motherboard
+	ioapic_write64(0, 0x3C, MASK_INT); // 22 - GPI
+	ioapic_write64(0, 0x3E, MASK_INT); // 23 - SMI special pin
+
+	kprintf("Done redirecting interrupts\n");
+	kprintf("0x%x\n", ioapic_read64(0, 0x10));
 }
 
 /* All reads/writes must be done in dwords, so 64-bit reads/writes need two
@@ -70,15 +156,32 @@ void ioapic_init()
  *                         - 111 = ExtINT - must be programmed as edge triggered
  * [7:0]   - Interrupt vector - Valid range is 0x10-0xFE
  */
-void ioapic_write(uint32_t* addr, uint8_t reg_idx, uint32_t val)
+void ioapic_write32(uint32_t ioapic_idx, uint8_t reg_idx, uint32_t val)
 {
+	uint32_t* addr = (uint32_t*)(ioapic_base_virt_address + ioapic_idx*0x1000);
 	*addr = reg_idx;
-	*(addr+1) = val;
+	*(addr+4) = val;
 }
 
-uint32_t ioapic_read(uint32_t* addr, uint8_t reg_idx)
+void ioapic_write64(uint32_t ioapic_idx, uint8_t reg_idx, uint64_t val)
 {
+	ioapic_write32(ioapic_idx, reg_idx+1, (val >> 32) & 0xFFFFFFFF);
+	ioapic_write32(ioapic_idx, reg_idx, val & 0xFFFFFFFF);
+}
+
+uint32_t ioapic_read32(uint32_t ioapic_idx, uint8_t reg_idx)
+{
+	uint32_t* addr = (uint32_t*)(ioapic_base_virt_address + ioapic_idx*0x1000);
 	*addr = reg_idx;
-	return *(addr+1);
+	return *(addr+4);
+}
+
+uint64_t ioapic_read64(uint32_t ioapic_idx, uint8_t reg_idx)
+{
+	uint64_t out_val = ioapic_read32(ioapic_idx, reg_idx+1);
+	out_val <<= 32;
+	out_val |= ioapic_read32(ioapic_idx, reg_idx);
+
+	return out_val;
 }
 
