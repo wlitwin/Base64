@@ -43,23 +43,6 @@ COMPILE_ASSERT(sizeof(MPConfigTable) == 44);
 #define MP_SIG 0x5F504D5F // The string "_MP_"
 #define MC_SIG 0x504D4350 // The string "PCMP"
 
-/* Parse the entries of a Multi-Processor Configuration Table. Entries
- * follow the table header and are of variable length. The entry_count
- * field of the MPConfigTable structure denotes how many entries to
- * parse. The first byte of each entry defines the entry type. All
- * entries are in ascending order sorted on the entry type.
- *
- * See Page 4-6 (42) in
- * http://download.intel.com/design/pentium/datashts/24201606.pdf
- *
- * Currently there are 5 defined entry types:
- *
- *   Type 0 - Processor - 20 bytes - One entry for every processor
- *   Type 1 - Bus       -  8 bytes - One entry per bus
- *   Type 2 - I/O APIC  -  8 bytes - One entry per I/O APIC
- *   Type 3 - I/O Interrupt Assignment - 8 bytes - One per interrupt source
- *   Type 4 - Local Interrupt Assignment - 8 bytes - One per system interrupt source
- */
 #define PROC_ENT_TYPE   0
 #define BUS_ENT_TYPE    1
 #define IOAPIC_ENT_TYPE 2
@@ -127,6 +110,29 @@ typedef struct
 
 COMPILE_ASSERT(sizeof(LAPICIntEntry) == 8);
 
+/* Get a reference to the MP table
+ */
+const MFPStruct* get_mfp_struct(void);
+
+
+/* References and counts to the different sections of the MP Table
+ */
+const ProcEntry* get_proc_entries(void);
+uint32_t get_proc_entry_count(void);
+
+const BusEntry* get_bus_entries(void);
+uint32_t get_bus_entry_count(void);
+
+const IOAPICEntry* get_ioapic_entries(void);
+uint32_t get_ioapic_entry_count(void);
+
+const IOIntEntry* get_ioint_entries(void);
+uint32_t get_ioint_entry_count();
+
+const LAPICIntEntry* get_lapicint_entries(void);
+uint32_t get_lapicint_entry_count(void);
+
+
 /* The Multi-Processor Floating Pointer Structure contains information
  * about the multi-processor configuration of the system. It is used
  * (among other things) to find the I/O APICs. The first I/O APIC default
@@ -137,13 +143,11 @@ COMPILE_ASSERT(sizeof(LAPICIntEntry) == 8);
  * and searches for the _MP_ signature. It will return the location of
  * the MFPS if found, or NULL if none of the locations contained the
  * signature.
- */
-MFPStruct* find_mfp_struct(void);
-
-/* Parse a Multi-Processor Configuration Table.
  *
- * For now it dumps debug information.
+ * Returns:
+ *   True if MFP struct was found and successfully parsed the config table.
+ *   False otherwise
  */
-void parse_mct(const MPConfigTable* mct);
+bool find_mfp_struct(void);
 
 #endif
