@@ -8,6 +8,7 @@
 #include "kprintf.h"
 #include "defines.h"
 #include "inttypes.h"
+#include "mptables.h"
 
 /* Default interrupt handler. Prints some information about
  * the interrupt, or if it's a serious interrupt halts.
@@ -50,6 +51,11 @@ void interrupts_init()
 
 	// Initialize the APIC
 	// TODO fallback to 8259 if there is no APIC?
+	// Parse the MP tables to gain information about the APIC
+	if (!find_mfp_struct())
+	{
+		panic("Failed to find the multiprocessor floating pointer structure\n");
+	}
 	apic_init();
 
 	ioapic_init();
