@@ -10,20 +10,6 @@
 #include "defines.h"
 #include "support.h"
 
-// For the 8259 PIC
-#define PIC_MASTER_CMD_PORT 0x20
-#define PIC_MASTER_IMR_PORT 0x21
-#define PIC_SLAVE_CMD_PORT 0xA0
-#define PIC_SLAVE_IMR_PORT 0xA1
-#define PIC_MASTER_SLAVE_LINE 0x04
-#define PIC_SLAVE_ID 0x02
-#define PIC_86MODE 0x1
-#define PIC_ICW1BASE 0x10
-#define PIC_NEEDICW4 0x01
-#define PIC_EOI 0x20
-
-#define PIC_REMAP_BASE 0x30
-
 #define APIC_BASE_MSR 0x1B
 #define APIC_EN (0x10)
 #define LVT_MASK (0x1 << 16)
@@ -41,7 +27,6 @@
 #define SPURIOUS_IRQ 0x50
 
 #define APIC_PRESENCE (0x1 << 9)
-#define APIC_LOCATION 0xFFFFFFFFFFFFF000
 volatile uint32_t* volatile APIC_REGS = (uint32_t*)APIC_LOCATION;
 
 /* Read the APICs starting physical location from the machine
@@ -56,32 +41,6 @@ uint32_t apic_base_address()
 }
 
 static
-void redirect_pic()
-{
-	// ICW1
-	_outb(PIC_MASTER_CMD_PORT, PIC_ICW1BASE | PIC_NEEDICW4);		
-	_outb(PIC_SLAVE_CMD_PORT, PIC_ICW1BASE | PIC_NEEDICW4);
-
-	// ICW2
-	// Master offset to 32
-	// Slave offset to 40
-	_outb(PIC_MASTER_IMR_PORT, PIC_REMAP_BASE);
-	_outb(PIC_SLAVE_IMR_PORT, PIC_REMAP_BASE+0x8);
-
-	// ICW3
-	_outb(PIC_MASTER_IMR_PORT, PIC_MASTER_SLAVE_LINE);
-	_outb(PIC_SLAVE_IMR_PORT, PIC_SLAVE_ID);
-
-	// ICW4
-	_outb(PIC_MASTER_IMR_PORT, PIC_86MODE);
-	_outb(PIC_SLAVE_IMR_PORT, PIC_86MODE);
-
-	// OCW1 Allow interrupts on all lines
-	_outb(PIC_MASTER_IMR_PORT, 0x0);
-	_outb(PIC_SLAVE_IMR_PORT, 0x0);
-}
-
-static
 void apic_spurious_handler(uint64_t vector, uint64_t code)
 {
 	kprintf("Spurious: 0x%x - %d\n", vector, code);
@@ -91,28 +50,18 @@ void apic_spurious_handler(uint64_t vector, uint64_t code)
 }
 
 inline __attribute__((always_inline))
-void pic_acknowledge(const uint64_t vector)
-{
-	if (vector >= PIC_REMAP_BASE && vector < PIC_REMAP_BASE+0x10)
-	{
-		_outb(PIC_MASTER_CMD_PORT, PIC_EOI);
-		if (vector > PIC_REMAP_BASE+0x8)
-		{
-			_outb(PIC_SLAVE_CMD_PORT, PIC_EOI);
-		}
-	}
-}
-
-inline __attribute__((always_inline))
 void apic_eoi()
 {
 	APIC_REGS[EOI_IDX] = 0;
 }
 
+// Page 33 Intel Multi-Processor Specification
+// http://download.intel.com/design/pentium/datashts/24201606.pdf
+
 void apic_init()
 {
 	// Redirect the PIC
-	redirect_pic();
+	//	redirect_pic();
 
 	// By default the LAPIC is mapped to the address
 	// 0xFEE00000 and should have caching disabled.

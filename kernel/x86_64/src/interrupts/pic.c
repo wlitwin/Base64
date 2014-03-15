@@ -1,0 +1,26 @@
+#include "pic.h"
+
+void disable_pic()
+{
+	// ICW1
+	_outb(PIC_MASTER_CMD_PORT, PIC_ICW1BASE | PIC_NEEDICW4);		
+	_outb(PIC_SLAVE_CMD_PORT, PIC_ICW1BASE | PIC_NEEDICW4);
+
+	// ICW2
+	// Master offset to PIC_REMAP_BASE
+	// Slave offset to PIC_REMAP_BASE+0x8
+	_outb(PIC_MASTER_IMR_PORT, PIC_REMAP_BASE);
+	_outb(PIC_SLAVE_IMR_PORT, PIC_REMAP_BASE+0x8);
+
+	// ICW3
+	_outb(PIC_MASTER_IMR_PORT, PIC_MASTER_SLAVE_LINE);
+	_outb(PIC_SLAVE_IMR_PORT, PIC_SLAVE_ID);
+
+	// ICW4
+	_outb(PIC_MASTER_IMR_PORT, PIC_86MODE);
+	_outb(PIC_SLAVE_IMR_PORT, PIC_86MODE);
+
+	// OCW1 Disable interrupts on all lines
+	_outb(PIC_MASTER_IMR_PORT, 0xFF);
+	_outb(PIC_SLAVE_IMR_PORT, 0xFF);
+}

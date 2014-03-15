@@ -1,6 +1,7 @@
 #include "init.h"
 
 #include "tss.h"
+#include "pic.h"
 #include "apic.h"
 #include "panic.h"
 #include "safety.h"
@@ -32,7 +33,6 @@ void default_handler(uint64_t vector, uint64_t code)
 		panic("GPF!");
 	}
 
-	pic_acknowledge(vector);
 	apic_eoi();
 }
 
@@ -51,6 +51,7 @@ void interrupts_init()
 
 	// Initialize the APIC
 	// TODO fallback to 8259 if there is no APIC?
+	disable_pic();
 	// Parse the MP tables to gain information about the APIC
 	if (!find_mfp_struct())
 	{
