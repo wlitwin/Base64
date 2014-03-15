@@ -19,8 +19,6 @@ create_bin: boot kernel
 	@echo Creating Boot Image
 	@cat ./boot/bin/bootloader.b ./kernel/bin/kernel.b > ./bin/kernel.bin
 
-	#./mkterm.sh
-
 x64_qemu: export CFLAGS += -DQEMU
 x64_qemu: create_bin
 	gnome-terminal --command 'nc -l -p 4555'
