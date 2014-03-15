@@ -193,32 +193,54 @@ void parse_mct(const MPConfigTable* mct)
 	const uint8_t* type_ptr = (uint8_t*) (mct + 1);
 	for (uint32_t i = 0; i < entries; ++i)
 	{
-		kprintf("Entry: %d - Type: %d\n", i, *type_ptr);
+		kprintf("\nEntry: %d - Type: %d\n", i, *type_ptr);
 		switch (*type_ptr)
 		{
 			case PROC_ENT_TYPE:
 				{
+					const ProcEntry* pe = (ProcEntry*) type_ptr;
 					kprintf("Processor\n");
+					kprintf("LAPIC: %d - VER: %d\n", pe->lapic_id, pe->lapic_ver);
+					kprintf("CPU FLAGS: 0x%x\n", pe->cpu_flags);
+					kprintf("CPU SIG: 0x%x\n", pe->cpu_signature);
+					kprintf("Feature Flags: 0x%x\n", pe->feature_flags);
 					type_ptr += sizeof(ProcEntry);
 				}
 				break;
 			case BUS_ENT_TYPE:
 				{
+					const BusEntry* be = (BusEntry*) type_ptr;
+					kprintf("BUS Entry\n");
+					kprintf("Bus ID: %d - %l6s\n", be->bus_id, be->bus_type_str);
 					type_ptr += sizeof(BusEntry);
 				}
 				break;
 			case IOAPIC_ENT_TYPE:
 				{
+					const IOAPICEntry* ie = (IOAPICEntry*) type_ptr; 
+					kprintf("IOAPIC Entry\n");
+					kprintf("ID: %d - VER: %d - Flags: 0x%x\n", ie->id, ie->version, ie->flags);
+					kprintf("ADDR: 0x%x\n", ie->address);
 					type_ptr += sizeof(IOAPICEntry);
 				}
 				break;
 			case IOINT_ENT_TYPE:
 				{
+					const IOIntEntry* ie = (IOIntEntry*) type_ptr;
+					kprintf("IOInt Entry\n");
+					kprintf("Int Type: %d - Flags: 0x%x\n", ie->interrupt_type, ie->flags);
+					kprintf("SRC BUS: %d - SRC BUS IRQ: %d\n", ie->src_bus_id, ie->src_bus_irq);
+					kprintf("DST IO APIC: %d - DST IO INT: %d\n", ie->dst_ioapic_id, ie->dst_ioapic_int);
 					type_ptr += sizeof(IOIntEntry);
 				}
 				break;
 			case LAPIC_ENT_TYPE:
 				{
+					const LAPICIntEntry* le = (LAPICIntEntry*) type_ptr;
+					kprintf("LAPIC Entry\n");
+					kprintf("INT type: %d - Flags: 0x%x\n", le->int_type, le->flags);
+					kprintf("SRC BUS: %d - SRC BUS IRQ: %d\n", le->src_bus_id, le->src_bus_irq);
+					kprintf("DST LAPIC: %d - DST LAPIC INT: %d\n", le->dst_lapic_id, le->dst_lapic_int);
 					type_ptr += sizeof(LAPICIntEntry);
 				}
 				break;
