@@ -11,5 +11,7 @@ void kmain(void)
 	memory_init();
 	interrupts_init();
 
+	__asm__("sti");
+
 	while(1) { __asm__("hlt"); }
 }
