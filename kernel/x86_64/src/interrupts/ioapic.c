@@ -81,7 +81,9 @@ void ioapic_init()
 	// We'll follow that until something else comes up
 	ioapic_write64(0, 0x10, 0xFC); // 0
 	ioapic_write64(0, 0x12, 0xF4); // 1
-	ioapic_write64(0, 0x14, 0xEC); // 2
+	// Apparently IRQ 2 is something internal to the PIC. It generates a lot of
+	// interrupts, so we'll disable it for now until more information is found.
+	ioapic_write64(0, 0x14, MASK_INT);//0xEC); // 2
 	ioapic_write64(0, 0x16, 0xA4); // 3
 	ioapic_write64(0, 0x18, 0x9C); // 4
 	ioapic_write64(0, 0x1A, 0x94); // 5
