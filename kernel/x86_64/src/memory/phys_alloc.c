@@ -3,7 +3,7 @@
 #include "phys_alloc.h"
 #include "inttypes.h"
 #include "stack.h"
-#include "panic.h"
+#include "safety.h"
 #include "kprintf.h"
 
 #ifndef DEBUG_PHYS_ALLOC
@@ -59,7 +59,7 @@ void setup_physical_allocator()
 	uint64_t allocatable_ram = 0;
 
 	uint32_t usable = 0;
-	for (uint32_t i = 0; i < mmap_length; ++i)
+	for (int32_t i = 0; i < mmap_length; ++i)
 	{
 		const uint64_t base_orig = mmap_array[i].base;	
 		const uint64_t length_orig = mmap_array[i].length;

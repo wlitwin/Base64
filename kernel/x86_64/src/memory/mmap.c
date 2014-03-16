@@ -22,6 +22,8 @@ const uint64_t KERNEL_ALL_HI_ADDR = (uint64_t)&__KERNEL_ALL_HI;
 // Location of the MMapEntry array length
 #define MMAP_COUNT_ADDRESS 0x2D00
 
+#define kprintf(...)
+
 // Constants for the type field in the MMapEntry structure
 #define TYPE_USABLE 1
 #define TYPE_RESERVED 2
@@ -46,9 +48,10 @@ typedef struct
 
 COMPILE_ASSERT(sizeof(MMapEntry) == 24);
 
-// For now we only support one entry, but can be expanded later
-MemoryMap mmap_array[1];
-uint32_t mmap_length = 1;
+// TODO - dynamically allocate this somewhere, not hard code the number of entries
+#define MAX_ENTRIES 10
+MemoryMap mmap_array[MAX_ENTRIES];
+int32_t mmap_length = 0;
 
 void mmap_init()
 {
@@ -67,10 +70,9 @@ void mmap_init()
 	const uint64_t reserved_lo = KERNEL_ALL_LO_ADDR;
 	const uint64_t reserved_hi = KERNEL_ALL_HI_ADDR;
 
-	uint32_t largest_region = 0xFFFFFFFF;
-
 	// Need to fix the MMAP entries
-	for (uint32_t i = 0; i < mmap_count; ++i)
+	mmap_length = 0;
+	for (uint32_t i = 0; i < mmap_count && mmap_length < MAX_ENTRIES; ++i)
 	{
 		if (mmap[i].type != TYPE_USABLE) continue;
 
@@ -78,72 +80,80 @@ void mmap_init()
 		// given by the BIOS. The first is that every region is unique, no
 		// duplicate or overlapping regions. Second is that the type fields
 		// are accurate.
-
-		// For now to make life easy, we're going to look for the largest
-		// mmap entry. There should be a large contiguous segment that is
-		// pretty close to the amount of physical machine memory. This can
-		// easily be expanded at a later time to make use of other available
-		// regions.
-		if (largest_region == 0xFFFFFFFF
-				|| mmap[i].length > mmap[largest_region].length)
-		{
-			largest_region = i;	
-		}
+		
+		mmap_array[mmap_length].base = mmap[i].base;
+		mmap_array[mmap_length].length = mmap[i].length;
+		++mmap_length;
 	}
 
-	if (largest_region == 0xFFFFFFFF)
+	for (int32_t i = 0; i < mmap_length; ++i)
+	{
+		kprintf("0x%x - %d\n", mmap_array[i].base, mmap_array[i].length);
+	}
+
+	if (mmap_length == 0)
 	{
 		panic("Failed to find suitable usable memory region.");	
 	}
 
-	kprintf("Found region: %d - 0x%x - %d - %dMiB\n", largest_region, 
-			mmap[largest_region].base, mmap[largest_region].length,
-			mmap[largest_region].length / 1024 / 1024);
+	kprintf("Res Lo: 0x%x - Res Hi: 0x%x\n", reserved_lo, reserved_hi);
+	kprintf("MMAP Entries: %d\n", mmap_length);
 
-	// Fix the region in case it intersects the kernel's memory
-	uint64_t base = mmap[largest_region].base;
-	uint64_t end = mmap[largest_region].length;
+	// Fix all the found regions
+	for (int32_t i = 0; i < mmap_length; ++i)
+	{
+		// Fix the region in case it intersects the kernel's memory
+		uint64_t base = mmap_array[i].base;
+		uint64_t end = base + mmap_array[i].length;
 
-	// We need to split in two, but we'll ignore entries below 1MiB
-	// for now, because that area needs special treatment anyway.
-	if (base < reserved_lo && end > reserved_hi)
-	{
-		// XXX - May need to change at future date to split region
-		base = reserved_hi;
-	}
-	else if (base >= reserved_lo && end > reserved_hi)
-	{
-		base = reserved_hi;
-	}
-	else if (base >= reserved_lo && end <= reserved_hi)
-	{
-		panic("Region is fully inside the kernel.");
-	}
-	else if (base < reserved_lo && end <= reserved_hi)
-	{
-		end = reserved_lo;
-	}
-	else
-	{
-		panic("Unhandled case");
+		kprintf("Region: 0x%x - 0x%x\n", base, end);
+
+		if (base < reserved_lo && end > reserved_hi)
+		{
+			// TODO split region, but maybe not because it intersects kernel?
+			base = reserved_hi;
+		}
+		else if (base < reserved_hi && end > reserved_hi)
+		{
+			base = reserved_hi;
+		}
+		else if ((base >= reserved_lo && end <= reserved_hi) ||
+ 				 // Don't allow regions below the kernel
+				 (base < reserved_lo && end <= reserved_hi))
+		{
+			kprintf("case 3\n");
+			// Remove this entry by moving down all other entries
+			for (int32_t j = i; j < mmap_length-1; ++j)
+			{
+				mmap_array[j] = mmap_array[j+1];
+			}
+			--mmap_length;
+			--i; // We want start at this new moved entry
+			continue; // Skip the assignment below
+		}
+
+		// Perform some more sanity checks
+		if (base <= reserved_lo || end <= reserved_lo)
+		{
+			panic("Base region is too low");
+		}
+
+		if (end <= base)
+		{
+			panic("Region does not exist");
+		}
+
+		// Region does not intersect kernel
+		mmap_array[i].base = base;
+		mmap_array[i].length = end - base;
+
+		kprintf("Fixed region: 0x%x - %d - %dMiB\n", 
+				mmap_array[i].base, mmap_array[i].length,
+				mmap_array[i].length / 1024 / 1024);
 	}
 
-	// Perform some more sanity checks
-	if (base <= reserved_lo || end <= reserved_lo)
+	if (mmap_length == 0)
 	{
-		panic("Base region is too low");
+		panic("No suitable regions after fixing");
 	}
-
-	if (end <= base)
-	{
-		panic("Region does not exist");
-	}
-
-	// Update the array
-	mmap_array[0].base = base;
-	mmap_array[0].length = end - base;
-
-	kprintf("Final region: 0x%x - %d - %dMiB\n", 
-			mmap_array[0].base, mmap_array[0].length,
-			mmap_array[0].length / 1024 / 1024);
 }

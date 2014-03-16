@@ -12,7 +12,7 @@ typedef struct
 
 // Stores all of the usable regions of memory
 extern MemoryMap mmap_array[];
-extern uint32_t mmap_length;
+extern int32_t mmap_length;
 
 /* Read the memory map provided by the BIOS and populate
  * the mmap_array. The mmap_array will contain usable
