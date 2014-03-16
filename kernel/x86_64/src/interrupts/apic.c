@@ -11,8 +11,8 @@
 #include "support.h"
 
 #define APIC_BASE_MSR 0x1B
-#define APIC_EN (0x10)
-#define LVT_MASK (0x1 << 16)
+#define APIC_EN (0x100)
+#define LVT_MASK (0x10000)
 #define LVT_EXTINT (0x700)
 #define LVT_NMI (0x400)
 #define LVT_LEVEL_TRIG (0x8000)
@@ -20,6 +20,7 @@
 #define TIMER_IDX (0x320 / sizeof(uint32_t))
 #define LINT0_IDX (0x350 / sizeof(uint32_t))
 #define LINT1_IDX (0x360 / sizeof(uint32_t))
+#define TPR_IDX (0x80 / sizeof(uint32_t))
 #define PERFCNT_IDX (0x340 / sizeof(uint32_t))
 #define ERROR_IDX (0x370 / sizeof(uint32_t))
 #define SPURIOUS_IDX (0xF0 / sizeof(uint32_t))
@@ -113,6 +114,7 @@ void apic_init()
 
 	APIC_REGS[LINT0_IDX] = LVT_LEVEL_TRIG | LVT_EXTINT;
 	APIC_REGS[LINT1_IDX] = LVT_NMI;
+	APIC_REGS[TPR_IDX] = 0;
 
 	// Install spurious handler
 	interrupts_install_isr(SPURIOUS_IRQ, apic_spurious_handler);
