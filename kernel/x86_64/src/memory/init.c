@@ -6,6 +6,6 @@
 void memory_init()
 {
 	mmap_init();
-	setup_physical_allocator();
 	paging_init();
+	setup_physical_allocator();
 }
