@@ -2,3 +2,8 @@
   This is needed because there are memory mapped devices
   like the LAPIC that shouldn't be accidentally used for
   arbitrary storage.
+
+- MMAP module isn't very good at the moment. Some assumptions
+  like always having available memory below 1GiB. Would like
+  to dynamically allocate the mmap array instead of hard 
+  coding the number of entries.
