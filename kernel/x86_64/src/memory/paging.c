@@ -2,7 +2,7 @@
 
 #include "mmap.h"
 #include "klib.h"
-#include "panic.h"
+#include "safety.h"
 #include "kprintf.h"
 #include "defines.h"
 #include "phys_alloc.h"
@@ -23,7 +23,7 @@ void paging_init()
 	// Find the highest address, this will be what needs to be
 	// identity mapped.
 	uint64_t max_addr = 0;
-	for (uint32_t i = 0; i < mmap_length; ++i)
+	for (int32_t i = 0; i < mmap_length; ++i)
 	{
 		const uint64_t high_address = mmap_array[i].base + 
 			mmap_array[i].length;
@@ -34,10 +34,20 @@ void paging_init()
 		}
 	}
 
+	// Need to do some math to figure out how much extra space is
+	// needed for this initial mapping. The problem is if extra
+	// pages are needed, they can't be allocated because the
+	// physical allocator is not setup yet. Instead pages will
+	// be taken from the end of the kernel's load area.
+	
 	// We'll allocate as many 2MiB pages as possible
 	max_addr = ALIGN_2MIB(max_addr);
 
+	kprintf("Max Address: 0x%x\n", max_addr);
+
 	// The kernel already identity maps the first 1 GIB of RAM
+	// so no extra pages are needed, in fact some mappings can
+	// be reclaimed.
 	if (max_addr < _1_GIB)
 	{
 		// Unmap invalid regions
@@ -45,16 +55,103 @@ void paging_init()
 		uint64_t paddr = 0;
 		while (phys_addr < _1_GIB)
 		{
+			kprintf("Umapping\n");
 			kunmap_page(phys_addr, &paddr);
 			phys_addr += _2_MIB;
 		}
 	}
 	else
 	{
-		max_addr -= _1_GIB;
+		// Now we need to figure out how many extra page tables are
+		// needed to do this mapping.
+		max_addr -= _1_GIB; // We already have this much mapped
 		const uint64_t num_pages = max_addr / _2_MIB;
-		// Perform the identity mapping
-		kmap_page_range(_1_GIB, _1_GIB, PG_FLAG_RW, PAGE_2MIB, num_pages);
+		const uint64_t num_pd_tables = num_pages / PDT_ENTRIES;
+		const uint64_t num_pdp_tables = num_pd_tables / PDPT_ENTRIES;
+
+		// TODO - Take into account the kernel_PDPTE
+
+		kprintf("Num pages: %d - PD %d PDP %d\n", num_pages, num_pd_tables, num_pdp_tables);
+
+		// Each table is 4KiB in size, so add up the total amount of space
+		// needed and check to make sure that is available after the kernel.
+		const uint64_t total_space_needed = num_pd_tables*sizeof(PD_Table) + 
+			num_pdp_tables*sizeof(PDP_Table);
+
+		extern uint64_t* __KERNEL_ALL_HI;
+		const uint64_t start_addr = ALIGN_4KIB((uint64_t)&__KERNEL_ALL_HI);
+		const uint64_t end_addr = start_addr + total_space_needed;
+
+		// Check each mmap_array entry, and then fix it as appropriate
+		for (int32_t i = 0; i < mmap_length; ++i)
+		{
+			uint64_t base = mmap_array[i].base;
+			uint64_t end = base + mmap_array[i].length;
+			if (base <= start_addr && end >= end_addr)
+			{
+				base = end_addr;
+			}
+
+			if (end - base == 0)
+			{
+				// Remove this entry
+				for (int32_t j = i; j < mmap_length-1; ++j)
+				{
+					mmap_array[j] = mmap_array[j+1];
+				}
+				--mmap_length;
+				break;
+			}
+
+			mmap_array[i].base = base;
+			mmap_array[i].length = end - base;
+		}
+
+		// Now have to go through and fill in the tables.
+		// First we'll fill in the lowest level tables, then
+		// the next lowest, etc.
+		memclr((void*)start_addr, end_addr - start_addr);
+
+		// The default mapping starts at 1GiB
+		uint64_t phys_addr = _1_GIB;
+		PD_Table* pdt = (PD_Table*)start_addr;
+		for (uint64_t i = 0; i < num_pages; ++i)
+		{
+			pdt->entries[i] = phys_addr | PDT_PAGE_SIZE | PDT_WRITABLE | PDT_PRESENT;	
+			invlpg(phys_addr);
+			phys_addr += _2_MIB;
+		}
+
+		// Fill the first 511 entries in the existing kernel_PDP table
+		extern PDP_Table kernel_PDPTE;
+		for (uint64_t i = 0; i < num_pd_tables || i < PDPT_ENTRIES-1; ++i)
+		{
+			const uint64_t pdt_addr = start_addr + i*sizeof(PD_Table);
+			kernel_PDPTE.entries[i+1] = pdt_addr | PDPT_WRITABLE | PDPT_PRESENT;	
+			invlpg(pdt_addr);
+		}
+
+		// The rest will use the allocated space
+		if (num_pd_tables > PDPT_ENTRIES-1)
+		{
+			// PDP tables start after all the PD tables
+			PDP_Table* pdpt = (PDP_Table*)(start_addr + num_pd_tables*sizeof(PD_Table));
+			for (uint64_t i = PDPT_ENTRIES-1; i < num_pd_tables; ++i)
+			{
+				const uint64_t pdt_addr = start_addr + i*sizeof(PD_Table);
+				pdpt->entries[i] = pdt_addr | PDPT_WRITABLE | PDPT_PRESENT;
+				invlpg(pdt_addr);
+			}
+		}
+
+		// Fill in the PML4 table
+		const uint64_t pdpt_start_offset = start_addr + num_pd_tables*sizeof(PD_Table);
+		for (uint64_t i = 0; i < num_pdp_tables; ++i)
+		{
+			const uint64_t pdpt_addr = pdpt_start_offset + i*sizeof(PDP_Table);
+			kernel_PML4.entries[i+1] = pdpt_addr | PML4_WRITABLE | PML4_PRESENT;
+			invlpg(pdpt_addr);
+		}
 	}
 
 	// Now all of physical RAM is identity mapped
