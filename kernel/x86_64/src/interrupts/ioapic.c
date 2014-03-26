@@ -24,7 +24,6 @@ uint64_t ioapic_read64(uint32_t ioapic_idx, uint8_t reg_idx);
 //
 // Page 32 of Intel Multi-Processor Specification
 // http://download.intel.com/design/pentium/datashts/24201606.pdf
-#define IOAPIC1_BASE 0xFEC00000
 
 static uint64_t ioapic_base_virt_address = 0;
 
@@ -57,6 +56,8 @@ void ioapic_init()
 		prev_address = ie[i].address;
 	}
 
+	ioapic_base_virt_address = ie[0].address;
+
 	// Make an identity mapping for the I/O APICs
 	uint64_t dummy;
 	for (uint32_t i = 0; i < num_ioapics; ++i)
@@ -68,6 +69,8 @@ void ioapic_init()
 			kprintf("I/O APIC #%d\n", i);
 			panic("Failed to map I/O APIC");
 		}
+
+		kprintf("Mapped I/O APIC: %d\n", i);
 	}
 
 	kprintf("Done mapping I/O APICs\n");
