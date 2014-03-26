@@ -57,20 +57,17 @@ void ioapic_init()
 		prev_address = ie[i].address;
 	}
 
-	// Make a virtual->physical mapping for the I/O APICs
-	uint64_t ioapic_virt_address = APIC_LOCATION - 0x1000*num_ioapics;	
-	ioapic_base_virt_address = ioapic_virt_address;
+	// Make an identity mapping for the I/O APICs
+	uint64_t dummy;
 	for (uint32_t i = 0; i < num_ioapics; ++i)
 	{
-		if (!kmap_page(ioapic_virt_address, ie[i].address,
+		kunmap_page(ie[i].address, &dummy);
+		if (!kmap_page(ie[i].address, ie[i].address,
 					PG_FLAG_RW | PG_FLAG_PWT | PG_FLAG_PCD, PAGE_4KIB))
 		{
 			kprintf("I/O APIC #%d\n", i);
 			panic("Failed to map I/O APIC");
 		}
-
-		// This assumption was verified earlier
-		ioapic_virt_address += 0x1000;
 	}
 
 	kprintf("Done mapping I/O APICs\n");
