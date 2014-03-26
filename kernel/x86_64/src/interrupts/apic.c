@@ -16,7 +16,8 @@
 #define LVT_EXTINT (0x700)
 #define LVT_NMI (0x400)
 #define LVT_LEVEL_TRIG (0x8000)
-#define EOI_IDX (0xB0/sizeof(uint32_t))
+#define ID_IDX (0x20 / sizeof(uint32_t))
+#define EOI_IDX (0xB0 / sizeof(uint32_t))
 #define TIMER_IDX (0x320 / sizeof(uint32_t))
 #define LINT0_IDX (0x350 / sizeof(uint32_t))
 #define LINT1_IDX (0x360 / sizeof(uint32_t))
@@ -28,7 +29,7 @@
 #define SPURIOUS_IRQ 0x50
 
 #define APIC_PRESENCE (0x1 << 9)
-volatile uint32_t* volatile APIC_REGS = (uint32_t*)APIC_LOCATION;
+volatile uint32_t* volatile APIC_REGS;
 
 /* Read the APICs starting physical location from the machine
  * specific register.
@@ -55,6 +56,11 @@ void apic_eoi()
 {
 	APIC_REGS[EOI_IDX] = 0;
 }
+
+// The bootstrap processor (BSP) ID, needed during shutdown as the BSP
+// needs to be the last processor shutdown.
+static
+int8_t bsp_id = -1;
 
 // Page 33 Intel Multi-Processor Specification
 // http://download.intel.com/design/pentium/datashts/24201606.pdf
@@ -89,17 +95,22 @@ void apic_init()
 
 	kprintf("APIC Physical Address: 0x%x\n", apic_addr);
 
-	// We'll remap this APIC to the highest part of the address
-	// space: 0xFFFFFFFFFFFFF000.
-	if (!kmap_page(APIC_LOCATION, apic_addr, 
+	// Make an identity mapping for the LAPIC
+	uint64_t dummy;
+	kunmap_page(apic_addr, &dummy);
+	if (!kmap_page(apic_addr, apic_addr, 
 			PG_FLAG_RW | PG_FLAG_PWT | PG_FLAG_PCD, PAGE_4KIB))
 	{
 		panic("Failed to remap APIC");
 	}
+	APIC_REGS = (uint32_t*) (uint64_t) apic_addr;
 
 	// Try to read the APIC ID from the newly mapped address
-	kprintf("APIC ID: 0x%x\n", APIC_REGS[0x20/4]);	
-	kprintf("APIC VER: 0x%x\n", APIC_REGS[0x30/4]);	
+	kprintf("BSP APIC ID: 0x%x\n", APIC_REGS[ID_IDX]);	
+	kprintf("BSP APIC VER: 0x%x\n", APIC_REGS[0x30/4]);	
+
+	// Save the bootstrap processor ID
+	bsp_id = APIC_REGS[ID_IDX];
 
 	// Disable the timer interrupt
 	APIC_REGS[TIMER_IDX] = LVT_MASK;
