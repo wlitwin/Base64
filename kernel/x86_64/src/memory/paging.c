@@ -344,7 +344,8 @@ uint8_t private_unmap_page(PML4_Table* pml4, uint64_t virt_addr,
 		pt->entries[pt_index] = 0;
 	}
 
-	// TODO - need invlpg?
+	// TODO need to do more than this?
+	invlpg(virt_addr);
 
 	return 1;
 }
