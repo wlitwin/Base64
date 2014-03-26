@@ -22,6 +22,9 @@ create_bin: boot kernel
 usb: clean create_bin
 	sudo dd if=bin/kernel.bin of=/dev/sdb ; sync
 
+objdump:
+	objdump -D kernel/x86_64/bin/kernel_dbg.o | less
+
 x64_qemu: export CFLAGS += -DQEMU
 x64_qemu: create_bin
 	gnome-terminal --command 'nc -l -p 4555'
