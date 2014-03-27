@@ -25,37 +25,33 @@ AS=as
 AS_FLAGS=--64 -am
 
 LD=ld
-LD_FLAGS=-m elf_x86_64 --oformat=binary
+LD_FLAGS=-m elf_x86_64
 LD_FLAGS_DBG=-m elf_x86_64
-
-OUTPUT_DIR=bin
-OBJ_DIR=obj
 
 # Filled in by debug rule
 DBG=
 
 KERNEL_OBJECTS=$(shell find src/ -name '*.[csS]' | sed -e 's/^\(.*\.[csS]\)$$/obj\/\1.o/g')
-PRE_KERNEL = $(OBJ_DIR)/src/prekernel.s.o
+PRE_KERNEL = obj/src/prekernel.s.o
 
 all: kernel 
 
 clean:
 	@echo Cleaning Kernel
-	@/bin/rm -rf $(OBJ_DIR)/*
-	@/bin/rm -rf $(OUTPUT_DIR)/*
+	@/bin/rm -rf ./obj/*
 
 # TODO Separate the runtime compilation from the kernels compilation
-$(OBJ_DIR)/%.c.o : %.c
+./obj/%.c.o : %.c
 	@echo " - Compiling" $^
 	@mkdir -p $(shell dirname $@)
 	@$(CC) $(DBG) $(CFLAGS) $(QEMU) -c $^ -o $@
 
-$(OBJ_DIR)/%.S.o : %.S
+./obj/%.S.o : %.S
 	@echo " - Assembling" $^
 	@mkdir -p $(shell dirname $@)
 	@$(CC) $(CFLAGS) $(QEMU) -c $^ -o $@
 
-$(OBJ_DIR)/%.s.o : %.s
+./obj/%.s.o : %.s
 	@echo " - Assembling" $^
 	@mkdir -p $(shell dirname $@)
 	@$(AS) $(AS_FLAGS) $^ -o $@
@@ -82,8 +78,8 @@ kernel: print_args $(KERNEL_OBJECTS)
 	@echo ----------------------------
 	@echo Creating Kernel Binary Image
 	@echo ----------------------------
-	@$(LD) $(LD_FLAGS) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o ../bin/kernel.b
-	@echo ---------------------------
+	@$(LD) $(LD_FLAGS) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o ../bin/kernel.o
+	@echo ----------------------------
 	@echo Creating Kernel Debug Image
-	@echo ---------------------------
-	@$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o $(OUTPUT_DIR)/kernel_dbg.o
+	@echo ----------------------------
+	@$(LD) $(LD_FLAGS_DBG) -T ./kernel.ld $(PRE_KERNEL) $(filter-out $(PRE_KERNEL),$(KERNEL_OBJECTS)) -o ../bin/kernel_dbg.o

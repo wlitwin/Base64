@@ -19,15 +19,14 @@ all: bootloader fancycat
 clean:
 	@echo Cleaning Boot
 	@/bin/rm -rf ./obj/*
-	@/bin/rm -rf ./bin/*
 
 fancycat: ./bin/FancyCat
 
 bootloader:
 	@echo Creating Bootloader
-	@$(AS) $(AS_FLAGS) bootloader.s -o ./obj/bootloader.o
+	@$(AS) $(AS_FLAGS) ./src/bootloader.s -o ./obj/bootloader.o
 	@$(LD) $(LD_FLAGS) ./obj/bootloader.o -Tbootloader.ld -o ../bin/bootloader.b
 
 ./bin/FancyCat:
 	@echo Creating FancyCat
-	@$(CC) $(CFLAGS) FancyCat.c -o ./bin/FancyCat
+	@$(CC) $(CFLAGS) ./src/FancyCat.c -o ../bin/FancyCat
